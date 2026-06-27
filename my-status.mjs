@@ -4,12 +4,19 @@ import os from 'os';
 import path from 'path';
 import fs from 'fs';
 
-function runPowerShell(script) {
+// ---------------------------------------------------------------------------
+// 統一的子進程工廠 (Unified subprocess factory)
+// ---------------------------------------------------------------------------
+
+/**
+ * 以 spawn 啟動進程並收集 stdout，出錯時回傳空字串。
+ * @param {string} cmd
+ * @param {string[]} [args=[]]
+ * @param {{ shell?: boolean }} [opts={}]
+ */
+function spawnProcess(cmd, args = [], opts = {}) {
   return new Promise((resolve) => {
-    const child = spawn('powershell.exe', ['-NoProfile', '-Command', script], {
-      windowsHide: true,
-      encoding: 'utf8'
-    });
+    const child = spawn(cmd, args, { windowsHide: true, encoding: 'utf8', ...opts });
     let stdout = '';
     if (child.stdout) {
       child.stdout.on('data', (chunk) => { stdout += chunk; });
@@ -19,27 +26,14 @@ function runPowerShell(script) {
   });
 }
 
-function runSpawn(cmd, args) {
-  return new Promise((resolve) => {
-    const child = spawn(cmd, args, {
-      windowsHide: true,
-      encoding: 'utf8'
-    });
-    let stdout = '';
-    if (child.stdout) {
-      child.stdout.on('data', (chunk) => { stdout += chunk; });
-    }
-    child.on('close', () => resolve(stdout));
-    child.on('error', () => resolve(''));
-  });
-}
+/** PowerShell 捷徑 */
+const runPowerShell = (script) =>
+  spawnProcess('powershell.exe', ['-NoProfile', '-Command', script]);
 
+/** exec (Unix shell 指令) 捷徑 */
 function runUnixCmd(cmd) {
   return new Promise((resolve) => {
-    const child = exec(cmd, {
-      windowsHide: true,
-      encoding: 'utf8'
-    });
+    const child = exec(cmd, { windowsHide: true, encoding: 'utf8' });
     let stdout = '';
     if (child.stdout) {
       child.stdout.on('data', (chunk) => { stdout += chunk; });
@@ -49,67 +43,98 @@ function runUnixCmd(cmd) {
   });
 }
 
-function getGitBranch() {
-  return new Promise((resolve) => {
-    const child = spawn('git', ['rev-parse', '--abbrev-ref', 'HEAD'], {
-      windowsHide: true,
-      encoding: 'utf8'
-    });
-    let stdout = '';
-    if (child.stdout) {
-      child.stdout.on('data', chunk => stdout += chunk);
-    }
-    child.on('close', (code) => {
-      if (code === 0) resolve(stdout.trim());
-      else resolve('');
-    });
-    child.on('error', () => resolve(''));
-  });
-}
+/** 取得目前 git 分支名稱 */
+const getGitBranch = () =>
+  spawnProcess('git', ['rev-parse', '--abbrev-ref', 'HEAD']).then((out) => out.trim());
 
-function shortenLabel(label) {
-  if (label.includes('Gemini 3.5 Flash (Medium)')) return 'Flash(M)';
-  if (label.includes('Gemini 3.5 Flash (High)')) return 'Flash(H)';
-  if (label.includes('Gemini 3.5 Flash (Low)')) return 'Flash(L)';
-  if (label.includes('Gemini 3.1 Pro (Low)')) return 'Pro(L)';
-  if (label.includes('Gemini 3.1 Pro (High)')) return 'Pro(H)';
-  if (label.includes('Claude Sonnet')) return 'Sonnet';
-  if (label.includes('Claude Opus')) return 'Opus';
-  if (label.includes('GPT-OSS')) return 'GPT-OSS';
-  return label;
-}
+// ---------------------------------------------------------------------------
+// 模型標籤解析 (Model label parsing) — 宣告式查找表
+// ---------------------------------------------------------------------------
+
+const MODEL_MAP = [
+  { match: 'Gemini 3.5 Flash (Medium)', base: 'Flash', suffix: 'M' },
+  { match: 'Gemini 3.5 Flash (High)',   base: 'Flash', suffix: 'H' },
+  { match: 'Gemini 3.5 Flash (Low)',    base: 'Flash', suffix: 'L' },
+  { match: 'Gemini 3.1 Pro (Low)',      base: 'Pro',   suffix: 'L' },
+  { match: 'Gemini 3.1 Pro (High)',     base: 'Pro',   suffix: 'H' },
+  { match: 'Claude Sonnet',             base: 'Sonnet', suffix: '' },
+  { match: 'Claude Opus',               base: 'Opus',   suffix: '' },
+  { match: 'GPT-OSS',                   base: 'GPT-OSS', suffix: '' },
+];
 
 function parseLabel(label, isCurrent) {
   const mark = isCurrent ? '*' : '';
-  if (label.includes('Gemini 3.5 Flash (Medium)')) return { base: 'Flash', suffix: mark + 'M' };
-  if (label.includes('Gemini 3.5 Flash (High)')) return { base: 'Flash', suffix: mark + 'H' };
-  if (label.includes('Gemini 3.5 Flash (Low)')) return { base: 'Flash', suffix: mark + 'L' };
-  if (label.includes('Gemini 3.1 Pro (Low)')) return { base: 'Pro', suffix: mark + 'L' };
-  if (label.includes('Gemini 3.1 Pro (High)')) return { base: 'Pro', suffix: mark + 'H' };
-  if (label.includes('Claude Sonnet')) return { base: mark + 'Sonnet', suffix: '' };
-  if (label.includes('Claude Opus')) return { base: mark + 'Opus', suffix: '' };
-  if (label.includes('GPT-OSS')) return { base: mark + 'GPT-OSS', suffix: '' };
-  return { base: mark + label, suffix: '' };
+  const entry = MODEL_MAP.find((e) => label.includes(e.match));
+  if (!entry) return { base: mark + label, suffix: '' };
+  return entry.suffix
+    ? { base: entry.base, suffix: mark + entry.suffix }
+    : { base: mark + entry.base, suffix: '' };
 }
 
-function formatActiveModel(label) {
-  let cleaned = label.replace(/\s*\(.*\)/g, '').trim();
-  cleaned = cleaned.replace(/Gemini\s+([\d.]+)\s+(\w+)/g, '$2 $1');
-  cleaned = cleaned.replace(/Claude\s+/g, '');
-  return cleaned;
-}
+// ---------------------------------------------------------------------------
+// 顏色工具
+// ---------------------------------------------------------------------------
 
 function getColorCode(percentage) {
-  if (percentage >= 75) {
-    return '\x1b[38;2;87;202;255m'; // Sky blue
-  } else if (percentage >= 50) {
-    return '\x1b[38;2;92;219;109m';  // Light green
-  } else if (percentage >= 25) {
-    return '\x1b[38;2;255;212;39m';  // Yellow
-  } else {
-    return '\x1b[38;2;255;125;175m'; // Red/Pink
+  if (percentage >= 75) return '\x1b[38;2;87;202;255m';  // Sky blue
+  if (percentage >= 50) return '\x1b[38;2;92;219;109m';  // Light green
+  if (percentage >= 25) return '\x1b[38;2;255;212;39m';  // Yellow
+  return '\x1b[38;2;255;125;175m';                        // Red/Pink
+}
+
+// ---------------------------------------------------------------------------
+// PID 存活檢查 (PID alive check)
+// ---------------------------------------------------------------------------
+
+/**
+ * 以低成本方式確認 PID 仍在運行。
+ * Windows: tasklist；Unix: kill -0
+ */
+async function isPidAlive(pid) {
+  if (!pid) return false;
+  try {
+    if (process.platform === 'win32') {
+      const out = await spawnProcess('tasklist', ['/FI', `PID eq ${pid}`, '/NH', '/FO', 'CSV']);
+      return out.includes(`"${pid}"`);
+    } else {
+      // kill -0 只做存在性檢查，不發送實際信號
+      process.kill(pid, 0);
+      return true;
+    }
+  } catch {
+    return false;
   }
 }
+
+// ---------------------------------------------------------------------------
+// 快取 (Cache) — 以 username 隔離，避免多使用者衝突
+// ---------------------------------------------------------------------------
+
+const _username = (() => { try { return os.userInfo().username; } catch { return 'default'; } })();
+const CACHE_FILE = path.join(os.tmpdir(), `.agy-statusline-cache-${_username}.json`);
+const CACHE_TTL_MS = 45000; // 45 seconds
+
+function loadCache() {
+  try {
+    if (fs.existsSync(CACHE_FILE)) {
+      const raw = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'));
+      if (Date.now() - raw.ts < CACHE_TTL_MS && raw.pid && raw.ports?.length) {
+        return raw;
+      }
+    }
+  } catch { /* ignore */ }
+  return null;
+}
+
+function saveCache(pid, csrfToken, ports) {
+  try {
+    fs.writeFileSync(CACHE_FILE, JSON.stringify({ pid, csrfToken, ports, ts: Date.now() }));
+  } catch { /* ignore */ }
+}
+
+// ---------------------------------------------------------------------------
+// 主程式
+// ---------------------------------------------------------------------------
 
 async function main() {
   try {
@@ -117,21 +142,29 @@ async function main() {
     let csrfToken = '';
     const ports = [];
 
-    if (process.platform === 'win32') {
+    // --- 嘗試快取，並驗證 PID 仍存活 ---
+    const cached = loadCache();
+    if (cached && await isPidAlive(cached.pid)) {
+      pid = cached.pid;
+      csrfToken = cached.csrfToken || '';
+      ports.push(...cached.ports);
+    }
+
+    if (process.platform === 'win32' && ports.length === 0) {
       const psScript = 'Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like "*--csrf_token=*" -and $_.Name -ne "powershell.exe" -and $_.Name -ne "pwsh.exe" -and $_.Name -ne "node.exe" -and $_.Name -ne "cmd.exe" } | ForEach-Object { $_.ProcessId.ToString() + "::" + $_.CommandLine }';
       const psOutput = await runPowerShell(psScript);
       const lines = psOutput.split(/\r?\n/);
       for (const line of lines) {
-        const parts = line.split('::');
-        if (parts.length >= 2) {
-          const p = parseInt(parts[0].trim(), 10);
-          const cmdLine = parts[1];
-          const match = cmdLine.match(/--csrf_token=([^\s"']+)/);
-          if (p && match) {
-            pid = p;
-            csrfToken = match[1];
-            break;
-          }
+        // 以首個 '::' 為分隔符，避免 CommandLine 內含 '::' 被截斷
+        const colonIdx = line.indexOf('::');
+        if (colonIdx === -1) continue;
+        const p = parseInt(line.slice(0, colonIdx).trim(), 10);
+        const cmdLine = line.slice(colonIdx + 2);
+        const match = cmdLine.match(/--csrf_token=([^\s"']+)/);
+        if (p && match) {
+          pid = p;
+          csrfToken = match[1];
+          break;
         }
       }
 
@@ -139,29 +172,19 @@ async function main() {
         const fallbackScript = 'Get-CimInstance Win32_Process | Where-Object { $_.Name -eq "agy.exe" } | ForEach-Object { $_.ProcessId }';
         const fallbackOutput = await runPowerShell(fallbackScript);
         const p = parseInt(fallbackOutput.trim(), 10);
-        if (p) {
-          pid = p;
-        }
+        if (p) pid = p;
       }
 
       if (pid) {
-        const netstatOutput = await runSpawn('netstat.exe', ['-ano']);
-        const nsLines = netstatOutput.split(/\r?\n/);
-        for (const line of nsLines) {
-          const parts = line.trim().split(/\s+/);
-          if (parts.length >= 5 && parts[0].toUpperCase() === 'TCP' && parts[3].toUpperCase() === 'LISTENING' && parts[4] === String(pid)) {
-            const addressPort = parts[1];
-            const lastColonIdx = addressPort.lastIndexOf(':');
-            if (lastColonIdx !== -1) {
-              const portNum = parseInt(addressPort.substring(lastColonIdx + 1), 10);
-              if (portNum && !ports.includes(portNum)) {
-                ports.push(portNum);
-              }
-            }
-          }
+        const netTcpScript = `Get-NetTCPConnection -OwningProcess ${pid} -State Listen -ErrorAction SilentlyContinue | ForEach-Object { $_.LocalPort }`;
+        const netTcpOutput = await runPowerShell(netTcpScript);
+        for (const line of netTcpOutput.split(/\r?\n/)) {
+          const portNum = parseInt(line.trim(), 10);
+          if (portNum && !ports.includes(portNum)) ports.push(portNum);
         }
+        if (ports.length) saveCache(pid, csrfToken, ports);
       }
-    } else {
+    } else if (process.platform !== 'win32' && ports.length === 0) {
       const psOutput = await runUnixCmd('ps auxww');
       const lines = psOutput.split('\n');
       for (const line of lines) {
@@ -189,7 +212,7 @@ async function main() {
       }
 
       if (pid) {
-        const lsofOutput = await runUnixCmd("lsof -nP -a -p " + pid + " -iTCP -sTCP:LISTEN");
+        const lsofOutput = await runUnixCmd('lsof -nP -a -p ' + pid + ' -iTCP -sTCP:LISTEN');
         const lsofLines = lsofOutput.split('\n');
         for (const line of lsofLines) {
           const match = line.match(/TCP\s+\S+:(\d+)\s+\(LISTEN\)/i);
@@ -233,7 +256,7 @@ async function main() {
           const req = https.request(options, (res) => {
             let data = '';
             res.setEncoding('utf8');
-            res.on('data', chunk => data += chunk);
+            res.on('data', (chunk) => { data += chunk; });
             res.on('end', () => {
               if (res.statusCode === 200) {
                 try {
@@ -248,7 +271,7 @@ async function main() {
           });
 
           req.on('error', reject);
-          req.setTimeout(2000);
+          req.setTimeout(1500);
           req.on('timeout', () => {
             req.destroy();
             reject(new Error('Timeout'));
@@ -258,7 +281,7 @@ async function main() {
           req.end();
         });
         if (userStatus) break;
-      } catch (e) {
+      } catch {
         // Try next port
       }
     }
@@ -272,14 +295,8 @@ async function main() {
     const configs = status?.cascadeModelConfigData?.clientModelConfigs || [];
     const defaultModel = status?.cascadeModelConfigData?.defaultOverrideModelConfig?.modelOrAlias?.model;
 
-    // Get active model details
-    let activeModelLabel = '';
-    for (const config of configs) {
-      if (config && config.modelOrAlias?.model === defaultModel) {
-        activeModelLabel = formatActiveModel(config.label || '');
-        break;
-      }
-    }
+    // Note: GetUserStatus only reflects global default model, not per-conversation overrides.
+    // Active model label is intentionally omitted.
 
     // Group configs by unique quota (fraction + resetTime)
     const groups = {};
@@ -289,11 +306,7 @@ async function main() {
         const resetTime = config.quotaInfo.resetTime || '';
         const key = `${fraction}_${resetTime}`;
         if (!groups[key]) {
-          groups[key] = {
-            fraction,
-            resetTime,
-            configs: []
-          };
+          groups[key] = { fraction, resetTime, configs: [] };
         }
         groups[key].configs.push(config);
       }
@@ -302,8 +315,8 @@ async function main() {
     const groupParts = [];
     for (const key in groups) {
       const group = groups[key];
-      
-      const parsedModels = group.configs.map(config => {
+
+      const parsedModels = group.configs.map((config) => {
         const isCurrent = config.modelOrAlias?.model === defaultModel;
         return {
           isCurrent,
@@ -314,29 +327,17 @@ async function main() {
       const bases = {};
       let groupHasCurrent = false;
       for (const m of parsedModels) {
-        if (m.isCurrent) {
-          groupHasCurrent = true;
-        }
+        if (m.isCurrent) groupHasCurrent = true;
         const base = m.parsed.base;
-        if (!bases[base]) {
-          bases[base] = {
-            hasCurrent: false,
-            suffixes: []
-          };
-        }
-        if (m.isCurrent) {
-          bases[base].hasCurrent = true;
-        }
-        if (m.parsed.suffix) {
-          bases[base].suffixes.push(m.parsed.suffix);
-        }
+        if (!bases[base]) bases[base] = { hasCurrent: false, suffixes: [] };
+        if (m.isCurrent) bases[base].hasCurrent = true;
+        if (m.parsed.suffix) bases[base].suffixes.push(m.parsed.suffix);
       }
 
       const baseLabels = [];
       for (const base in bases) {
         const b = bases[base];
         let baseLabel = base;
-        
         if (b.suffixes.length > 0) {
           b.suffixes.sort((x, y) => {
             const xIsCurrent = x.startsWith('*');
@@ -345,9 +346,7 @@ async function main() {
             if (!xIsCurrent && yIsCurrent) return 1;
             return x.localeCompare(y);
           });
-          
-          const suffixStr = b.suffixes.join('/');
-          baseLabel = `${baseLabel}(${suffixStr})`;
+          baseLabel = `${baseLabel}(${b.suffixes.join('/')})`;
         }
         baseLabels.push(baseLabel);
       }
@@ -361,8 +360,10 @@ async function main() {
       });
 
       const groupLabel = baseLabels.join('/');
-      const percentage = Math.round(group.fraction * 100);
-      
+
+      // NaN 防護：fraction 若為非法值，強制落在 [0, 100]
+      const percentage = Math.min(100, Math.max(0, Math.round((group.fraction ?? 0) * 100)));
+
       let resetStr = '';
       if (group.resetTime && group.fraction < 1) {
         const diffMs = new Date(group.resetTime).getTime() - Date.now();
@@ -373,11 +374,7 @@ async function main() {
             const diffMinutes = Math.floor(diffMs / 1000 / 60);
             const hours = Math.floor(diffMinutes / 60);
             const mins = diffMinutes % 60;
-            if (hours > 0) {
-              resetStr = `${hours}h ${mins}m`;
-            } else {
-              resetStr = `${mins}m`;
-            }
+            resetStr = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
           }
         }
       }
@@ -390,17 +387,13 @@ async function main() {
 
       // Color coding
       const color = getColorCode(percentage);
-      
+
       // Build group status string with visual bar
       let groupStatus = `${groupLabel} ${color}${filledBar}\x1b[90m${emptyBar}${color} ${percentage}%`;
-      if (resetStr) {
-        groupStatus += ` (⏰ ${resetStr})`;
-      }
-
-      const coloredStatus = `${color}${groupStatus}\x1b[0m`;
+      if (resetStr) groupStatus += ` (⏰ ${resetStr})`;
 
       groupParts.push({
-        status: coloredStatus,
+        status: `${color}${groupStatus}\x1b[0m`,
         hasCurrent: groupHasCurrent
       });
     }
@@ -411,8 +404,8 @@ async function main() {
       return 0;
     });
 
-    const finalParts = groupParts.map(g => g.status);
-    
+    const finalParts = groupParts.map((g) => g.status);
+
     // Get account info (email or name)
     const email = status.email || status.name || '';
     const accountStr = email ? ` \x1b[90m👤 ${email}\x1b[0m` : '';
@@ -420,7 +413,6 @@ async function main() {
     // Fetch folder and git info
     const folderName = path.basename(process.cwd());
     const gitBranch = await getGitBranch();
-    const activeModelPart = activeModelLabel ? `[${activeModelLabel}] ` : '';
 
     // Read settings.json to detect fast mode
     let isFastMode = false;
@@ -432,23 +424,23 @@ async function main() {
           isFastMode = true;
         }
       }
-    } catch (e) {
+    } catch {
       // ignore
     }
 
     const fastText = isFastMode ? '\x1b[38;2;87;202;255m\x1b[1m⚡Fast\x1b[0m\x1b[90m' : '⚡Fast';
     const cmdPart = `\x1b[90m[${fastText}/📋Plan/👥Team/💬Grill]\x1b[0m `;
     const gitPart = gitBranch ? ` git:(${gitBranch})` : '';
-    
-    // Line 1: [Model] │ [⚡Fast/📋Plan/👥Team/💬Grill] │ folder git:(branch) 👤 email
-    const line1 = `${activeModelPart}│ ${cmdPart}│ ${folderName}${gitPart}${accountStr}`;
+
+    // Line 1: [⚡Fast/📋Plan/👥Team/💬Grill] │ folder git:(branch) 👤 email
+    const line1 = `│ ${cmdPart}│ ${folderName}${gitPart}${accountStr}`;
 
     if (finalParts.length > 0) {
       console.log(`${line1}\nAPI: ` + finalParts.join(' | '));
     } else {
       console.log(`${line1}\nAPI: --`);
     }
-  } catch (err) {
+  } catch {
     console.log('API: --');
   }
 }
