@@ -8,11 +8,8 @@ An advanced, zero-dependency, cross-platform statusline hook script tailored for
 
 ## Visual Preview
 
-```text
-[Gemini 3.1 Pro (High)] (thinking) │ [⚡Fast/📋Plan/👥Team/💬Grill] │ agy-statusline-hook git:(main) 👤 your.email@gmail.com
-API: Gemini (5h) ██████████ 100% (⏰ 5h 0m) | Gemini (Week) █████████░ 85% (⏰ 100h 0m) | CTX: 12.5k/100k (88% left) | Turn: +2.1k/-318
-SYS: 🤖 Subagents: 2 │ ⚙️ Tasks: 1 │ 🔓 Sandbox: OFF │ 🌐 Network: ON
-```
+![Visual Preview](preview.gif)
+
 *(Actual output includes 24-bit TrueColor ANSI styling. The SYS line is dynamic and hides automatically when the system is normal to save space)*
 
 ---

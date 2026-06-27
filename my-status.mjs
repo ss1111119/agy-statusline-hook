@@ -139,7 +139,15 @@ async function main() {
     const stateStr = agentState !== 'idle' ? ` \x1b[33m(${agentState})\x1b[0m` : '';
     const fastText = isFastMode ? '\x1b[38;2;87;202;255m\x1b[1m⚡Fast\x1b[0m\x1b[90m' : '⚡Fast';
     const cmdPart = `\x1b[90m[${fastText}/📋Plan/👥Team/💬Grill]\x1b[0m`;
-    const accountStr = email ? ` \x1b[90m👤 ${email}\x1b[0m` : '';
+    const maskEmail = (str) => {
+      if (!str) return '';
+      const [local, domain] = str.split('@');
+      if (!domain) return str;
+      const maskedLocal = local.length > 2 ? local.slice(0, 2) + '***' : local + '***';
+      const maskedDomain = domain.length > 2 ? domain.slice(0, 2) + '***' : domain;
+      return `${maskedLocal}@${maskedDomain}`;
+    };
+    const accountStr = email ? ` \x1b[90m👤 ${maskEmail(email)}\x1b[0m` : '';
     const line1 = `${modelStr}${stateStr} │ ${cmdPart} │ ${folderName}${gitPart}${accountStr}`;
 
     // 第二行: API 配額與 Token
