@@ -143,16 +143,16 @@ async function main() {
     const line1 = `${modelStr}${stateStr} │ ${cmdPart} │ ${folderName}${gitPart}${accountStr}`;
 
     // 第二行: API 配額與 Token
-    const ctxStr = `CTX: ${formatTokens(ctxUsed)}/${formatTokens(ctxTotal)} (\x1b[38;2;255;212;39m${Math.round(ctxRemainPct)}% 剩餘\x1b[0m)`;
+    const ctxStr = `CTX: ${formatTokens(ctxUsed)}/${formatTokens(ctxTotal)} (\x1b[38;2;255;212;39m${Math.round(ctxRemainPct)}% left\x1b[0m)`;
     const turnStr = `\x1b[90mTurn: +${formatTokens(turnIn)}/-${formatTokens(turnOut)}\x1b[0m`;
-    const quotaLine = quotaStrs.length > 0 ? quotaStrs.join(' | ') : `無額度資料`;
+    const quotaLine = quotaStrs.length > 0 ? quotaStrs.join(' | ') : `No Quota Data`;
     const line2 = `API: ${quotaLine} | ${ctxStr} | ${turnStr}`;
 
     // 第三行: (有需要才顯示) 背景任務與沙盒
     let line3 = null;
     let bgInfo = [];
-    if (subagentsCount > 0) bgInfo.push(`🤖 探員: ${subagentsCount}`);
-    if (tasksCount > 0) bgInfo.push(`⚙️ 任務: ${tasksCount}`);
+    if (subagentsCount > 0) bgInfo.push(`🤖 Subagents: ${subagentsCount}`);
+    if (tasksCount > 0) bgInfo.push(`⚙️ Tasks: ${tasksCount}`);
     if (!isSandboxOn) bgInfo.push(`🔓 \x1b[31mSandbox: OFF\x1b[0m`);
     if (isNetOn) bgInfo.push(`🌐 \x1b[33mNetwork: ON\x1b[0m`);
     
