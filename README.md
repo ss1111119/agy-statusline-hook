@@ -1,5 +1,10 @@
 # Antigravity CLI Statusline Hook (`my-status.mjs`)
 
+[![GitHub release (latest by date)](https://img.shields.io/github/v/release/ss1111119/agy-statusline-hook)](https://github.com/ss1111119/agy-statusline-hook/releases)
+[![GitHub Repo stars](https://img.shields.io/github/stars/ss1111119/agy-statusline-hook)](https://github.com/ss1111119/agy-statusline-hook/stargazers)
+[![License](https://img.shields.io/github/license/ss1111119/agy-statusline-hook)](LICENSE)
+[![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-blue)](#)
+
 [English](#english) | [繁體中文](#chinese)
 
 An advanced, zero-dependency, cross-platform statusline hook script tailored for [Google Antigravity CLI (`agy`)](https://github.com/google/antigravity). Built on the latest **Stdin Injection Architecture**, it provides **zero-latency** updates, **100% accurate active model tracking**, and comprehensive system telemetry including dual quota tracking (5h & Weekly), context window size, turn tokens, and sandbox security states.
