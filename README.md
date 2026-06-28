@@ -54,20 +54,33 @@ mkdir -p ~/.gemini/antigravity-cli/hooks && curl -fsSL https://raw.githubusercon
 
 ### 🪟 Windows (PowerShell)
 ```powershell
-New-Item -ItemType Directory -Force -Path "$HOME\.gemini\antigravity-cli\hooks"; Invoke-RestMethod -Uri "https://raw.githubusercontent.com/ss1111119/agy-statusline-hook/main/my-status.mjs" -OutFile "$HOME\.gemini\antigravity-cli\hooks\my-status.mjs"
+New-Item -ItemType Directory -Force -Path "$HOME\.gemini\antigravity-cli\hooks"; curl.exe -fsSL "https://raw.githubusercontent.com/ss1111119/agy-statusline-hook/main/my-status.mjs" -o "$HOME\.gemini\antigravity-cli\hooks\my-status.mjs"
 ```
 
 ### ⚙️ Configuration
 After installing, ensure this script is enabled in your global settings file (`~/.gemini/antigravity-cli/settings.json`):
-```json
-{
-  "statusLine": {
-    "enabled": true,
-    "type": "command",
-    "command": "node ~/.gemini/antigravity-cli/hooks/my-status.mjs"
+
+* **macOS / Linux**:
+  ```json
+  {
+    "statusLine": {
+      "enabled": true,
+      "type": "command",
+      "command": "node ~/.gemini/antigravity-cli/hooks/my-status.mjs"
+    }
   }
-}
-```
+  ```
+* **Windows**:
+  *(Note: Node.js on Windows does not natively expand `~`. Please use your absolute path instead, replacing `<YourUsername>` with your Windows username)*
+  ```json
+  {
+    "statusLine": {
+      "enabled": true,
+      "type": "command",
+      "command": "node C:/Users/<YourUsername>/.gemini/antigravity-cli/hooks/my-status.mjs"
+    }
+  }
+  ```
 
 ---
 
@@ -141,22 +154,34 @@ mkdir -p ~/.gemini/antigravity-cli/hooks && curl -fsSL https://raw.githubusercon
 
 #### Windows (PowerShell):
 ```powershell
-New-Item -ItemType Directory -Force -Path "$HOME\.gemini\antigravity-cli\hooks"; Invoke-RestMethod -Uri "https://raw.githubusercontent.com/ss1111119/agy-statusline-hook/main/my-status.mjs" -OutFile "$HOME\.gemini\antigravity-cli\hooks\my-status.mjs"
+New-Item -ItemType Directory -Force -Path "$HOME\.gemini\antigravity-cli\hooks"; curl.exe -fsSL "https://raw.githubusercontent.com/ss1111119/agy-statusline-hook/main/my-status.mjs" -o "$HOME\.gemini\antigravity-cli\hooks\my-status.mjs"
 ```
 
 ### ⚙️ 啟用與設定
 
 安裝完成後，請確保將此腳本加入您的全域設定檔（`~/.gemini/antigravity-cli/settings.json`）中以啟用它：
 
-```json
-{
-  "statusLine": {
-    "enabled": true,
-    "type": "command",
-    "command": "node ~/.gemini/antigravity-cli/hooks/my-status.mjs"
+* **macOS / Linux**:
+  ```json
+  {
+    "statusLine": {
+      "enabled": true,
+      "type": "command",
+      "command": "node ~/.gemini/antigravity-cli/hooks/my-status.mjs"
+    }
   }
-}
-```
+  ```
+* **Windows**:
+  *(注意：Windows 上的 Node.js 無法直接解析 `~`。請使用絕對路徑，並將 `<YourUsername>` 替換為您的 Windows 使用者名稱)*
+  ```json
+  {
+    "statusLine": {
+      "enabled": true,
+      "type": "command",
+      "command": "node C:/Users/<YourUsername>/.gemini/antigravity-cli/hooks/my-status.mjs"
+    }
+  }
+  ```
 
 ### 🚀 如何啟動與使用
 
