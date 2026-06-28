@@ -71,6 +71,36 @@ After installing, ensure this script is enabled in your global settings file (`~
 
 ---
 
+## Usage & Interactive Commands
+
+### 🚀 Starting the Statusline
+Once configured in your `settings.json`, simply launch the Antigravity CLI by running the following command in your terminal:
+```bash
+agy
+```
+The statusline will automatically render at the bottom of your terminal window during the session.
+
+### 🔄 Toggling Visibility
+Inside the `agy` interactive session, you can toggle the statusline display on or off at any time by typing the following slash command:
+```text
+/statusline
+```
+
+### 🧪 Local Testing & Development
+Since the script processes JSON data piped through standard input (`stdin`), you can test the output rendering locally in your shell using mock data without running the full CLI:
+
+* **macOS / Linux**:
+  ```bash
+  echo '{"model":{"display_name":"Gemini 3.5 Flash"},"agent_state":"thinking","email":"test@example.com","context_window":{"context_window_size":100000,"total_input_tokens":12000,"total_output_tokens":3000,"remaining_percentage":85,"current_usage":{"input_tokens":2100,"output_tokens":318}},"subagents":[{},{}],"task_count":1,"sandbox":{"enabled":false,"allow_network":true},"quota":{"gemini-5h":{"remaining_fraction":0.9,"reset_in_seconds":3600}}}' | node my-status.mjs
+  ```
+* **Windows (PowerShell)**:
+  ```powershell
+  $mock = '{"model":{"display_name":"Gemini 3.5 Flash"},"agent_state":"thinking","email":"test@example.com","context_window":{"context_window_size":100000,"total_input_tokens":12000,"total_output_tokens":3000,"remaining_percentage":85,"current_usage":{"input_tokens":2100,"output_tokens":318}},"subagents":[{},{}],"task_count":1,"sandbox":{"enabled":false,"allow_network":true},"quota":{"gemini-5h":{"remaining_fraction":0.9,"reset_in_seconds":3600}}}'
+  $mock | node my-status.mjs
+  ```
+
+---
+
 ## Integration Guide
 
 ### 1. tmux Statusline
@@ -112,6 +142,71 @@ mkdir -p ~/.gemini/antigravity-cli/hooks && curl -fsSL https://raw.githubusercon
 #### Windows (PowerShell):
 ```powershell
 New-Item -ItemType Directory -Force -Path "$HOME\.gemini\antigravity-cli\hooks"; Invoke-RestMethod -Uri "https://raw.githubusercontent.com/ss1111119/agy-statusline-hook/main/my-status.mjs" -OutFile "$HOME\.gemini\antigravity-cli\hooks\my-status.mjs"
+```
+
+### ⚙️ 啟用與設定
+
+安裝完成後，請確保將此腳本加入您的全域設定檔（`~/.gemini/antigravity-cli/settings.json`）中以啟用它：
+
+```json
+{
+  "statusLine": {
+    "enabled": true,
+    "type": "command",
+    "command": "node ~/.gemini/antigravity-cli/hooks/my-status.mjs"
+  }
+}
+```
+
+### 🚀 如何啟動與使用
+
+1. **啟動狀態列**：
+   在設定完成後，只需在終端機輸入以下指令啟動對話：
+   ```bash
+   agy
+   ```
+   狀態列將會自動顯示在對話視窗的最下方。
+
+2. **切換顯示狀態**：
+   在 `agy` 互動對話中，您可以隨時輸入以下指令來切換（開啟或關閉）狀態列的顯示：
+   ```text
+   /statusline
+   ```
+
+### 🧪 本機測試與開發
+
+此腳本採用 `stdin` 標準輸入注入架構。若您在修改腳本時想要測試外觀，可以直接在終端機輸入模擬的 JSON 數據進行測試，不需啟動 `agy` 主程式：
+
+* **macOS / Linux**:
+  ```bash
+  echo '{"model":{"display_name":"Gemini 3.5 Flash"},"agent_state":"thinking","email":"test@example.com","context_window":{"context_window_size":100000,"total_input_tokens":12000,"total_output_tokens":3000,"remaining_percentage":85,"current_usage":{"input_tokens":2100,"output_tokens":318}},"subagents":[{},{}],"task_count":1,"sandbox":{"enabled":false,"allow_network":true},"quota":{"gemini-5h":{"remaining_fraction":0.9,"reset_in_seconds":3600}}}' | node my-status.mjs
+  ```
+* **Windows (PowerShell)**:
+  ```powershell
+  $mock = '{"model":{"display_name":"Gemini 3.5 Flash"},"agent_state":"thinking","email":"test@example.com","context_window":{"context_window_size":100000,"total_input_tokens":12000,"total_output_tokens":3000,"remaining_percentage":85,"current_usage":{"input_tokens":2100,"output_tokens":318}},"subagents":[{},{}],"task_count":1,"sandbox":{"enabled":false,"allow_network":true},"quota":{"gemini-5h":{"remaining_fraction":0.9,"reset_in_seconds":3600}}}'
+  $mock | node my-status.mjs
+  ```
+
+---
+
+### 🔌 整合指南
+
+#### 1. tmux 狀態列整合
+將 API 配額進度條整合至您的 `tmux` 狀態列，請編輯您的 `~/.tmux.conf`：
+```tmux
+set -g status-right-length 150
+set -g status-right "#(node ~/.gemini/antigravity-cli/hooks/my-status.mjs | sed -n '2p')"
+```
+
+#### 2. Zsh Prompt 整合
+在終端機 Prompt 上方顯示當前狀態，請在 `~/.zshrc` 底部加入：
+```zsh
+show_agy_status() {
+  node ~/.gemini/antigravity-cli/hooks/my-status.mjs | head -n 1
+}
+precmd() {
+  show_agy_status
+}
 ```
 
 ---
