@@ -109,14 +109,14 @@ export function renderStatus(data, gitInfo, isFastMode) {
     if (quotas['gemini-5h']?.remaining_fraction != null) {
       activeQuotas.push({ label: 'Gemini (5h)', fraction: quotas['gemini-5h'].remaining_fraction, reset: quotas['gemini-5h'].reset_in_seconds });
     }
-    if (quotas['gemini-weekly']?.remaining_fraction != null && termWidth >= 115) {
+    if (quotas['gemini-weekly']?.remaining_fraction != null && termWidth >= 85) {
       activeQuotas.push({ label: 'Gemini (Week)', fraction: quotas['gemini-weekly'].remaining_fraction, reset: quotas['gemini-weekly'].reset_in_seconds });
     }
   } else {
     if (quotas['3p-5h']?.remaining_fraction != null) {
       activeQuotas.push({ label: '3rd-Party (5h)', fraction: quotas['3p-5h'].remaining_fraction, reset: quotas['3p-5h'].reset_in_seconds });
     }
-    if (quotas['3p-weekly']?.remaining_fraction != null && termWidth >= 115) {
+    if (quotas['3p-weekly']?.remaining_fraction != null && termWidth >= 85) {
       activeQuotas.push({ label: '3rd-Party (Week)', fraction: quotas['3p-weekly'].remaining_fraction, reset: quotas['3p-weekly'].reset_in_seconds });
     }
   }
@@ -205,7 +205,6 @@ export function renderStatus(data, gitInfo, isFastMode) {
 
   const line1 = `${modelStr}${stateStr} │ ${cmdPart} │ ${folderPart}${branchPartStyled}${emailPartStyled}`;
 
-  // Line 2: API Quota | Context Window | Turn Tokens (with colored formatting)
   const showTurn = termWidth >= 95;
   let ctxStr = '';
   if (termWidth < 75) {
@@ -216,26 +215,34 @@ export function renderStatus(data, gitInfo, isFastMode) {
     ctxStr = `CTX: ${formatTokens(ctxUsed)}/${formatTokens(ctxTotal)} (\x1b[38;2;255;212;39m${Math.round(ctxRemainPct)}% left\x1b[0m)`;
   }
 
-  const turnStr = showTurn ? ` | ${formatTurnTokens(turnIn, turnOut)}` : '';
+  // Line 2: API Quota (with colored formatting)
   const quotaLine = quotaStrs.length > 0 ? quotaStrs.join(' | ') : `No Quota Data`;
-  const line2 = `API: ${quotaLine} | ${ctxStr}${turnStr}`;
+  const line2 = `API: ${quotaLine}`;
 
-  // Line 3 (Optional System Alerts)
-  let line3 = null;
-  let bgInfo = [];
-  if (subagentsCount > 0) bgInfo.push(`🤖 Subagents: ${subagentsCount}`);
-  if (tasksCount > 0) bgInfo.push(`⚙️ Tasks: ${tasksCount}`);
-  if (!isSandboxOn) bgInfo.push(`🔓 \x1b[31mSandbox: OFF\x1b[0m`);
-  if (isNetOn) bgInfo.push(`🌐 \x1b[33mNetwork: ON\x1b[0m`);
-  
-  if (bgInfo.length > 0) {
-    line3 = `SYS: ${bgInfo.join(' │ ')}`;
+  // Line 3: System & Session Telemetry (CTX, Turn, Subagents, Tasks, Sandbox, Network)
+  let sysInfo = [ctxStr];
+  if (showTurn) {
+    sysInfo.push(formatTurnTokens(turnIn, turnOut));
   }
+  
+  const showFullLabel = termWidth >= 80;
+  if (subagentsCount > 0) {
+    sysInfo.push(showFullLabel ? `🤖 Subagents: ${subagentsCount}` : `🤖 ${subagentsCount}`);
+  }
+  if (tasksCount > 0) {
+    sysInfo.push(showFullLabel ? `⚙️ Tasks: ${tasksCount}` : `⚙️ ${tasksCount}`);
+  }
+  if (!isSandboxOn) {
+    sysInfo.push(showFullLabel ? `🔓 \x1b[31mSandbox: OFF\x1b[0m` : `🔓 \x1b[31mOFF\x1b[0m`);
+  }
+  if (isNetOn) {
+    sysInfo.push(showFullLabel ? `🌐 \x1b[33mNetwork: ON\x1b[0m` : `🌐 \x1b[33mON\x1b[0m`);
+  }
+
+  const line3 = `SYS: ${sysInfo.join(' │ ')}`;
 
   // Write outputs
   console.log(line1);
   console.log(line2);
-  if (line3) {
-    console.log(line3);
-  }
+  console.log(line3);
 }
