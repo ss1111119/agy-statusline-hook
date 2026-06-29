@@ -10,7 +10,6 @@ const hookDir = path.join(homeDir, '.gemini', 'antigravity-cli', 'hooks');
 const settingsPath = path.join(homeDir, '.gemini', 'antigravity-cli', 'settings.json');
 const scriptName = 'my-status.mjs';
 const scriptDest = path.join(hookDir, scriptName);
-const scriptUrl = 'https://raw.githubusercontent.com/ss1111119/agy-statusline-hook/main/my-status.mjs';
 
 // 1. Create hooks directory if it doesn't exist
 if (!fs.existsSync(hookDir)) {
@@ -18,26 +17,39 @@ if (!fs.existsSync(hookDir)) {
     console.log(`📁 Created directory: ${hookDir}`);
 }
 
-// 2. Download the script
-console.log(`⬇️  Downloading ${scriptName}...`);
-https.get(scriptUrl, (res) => {
-    if (res.statusCode !== 200) {
-        console.error(`❌ Failed to download script. Status Code: ${res.statusCode}`);
+// 2. Download all required scripts
+const filesToDownload = ['my-status.mjs', 'git.mjs', 'input.mjs', 'renderer.mjs'];
+let downloadedCount = 0;
+
+function downloadFile(fileName) {
+    const dest = path.join(hookDir, fileName);
+    const url = `https://raw.githubusercontent.com/ss1111119/agy-statusline-hook/main/${fileName}`;
+    
+    console.log(`⬇️  Downloading ${fileName}...`);
+    https.get(url, (res) => {
+        if (res.statusCode !== 200) {
+            console.error(`❌ Failed to download ${fileName}. Status Code: ${res.statusCode}`);
+            process.exit(1);
+        }
+
+        const fileStream = fs.createWriteStream(dest);
+        res.pipe(fileStream);
+
+        fileStream.on('finish', () => {
+            fileStream.close();
+            console.log(`✅ Successfully downloaded ${fileName} to: ${dest}`);
+            downloadedCount++;
+            if (downloadedCount === filesToDownload.length) {
+                updateSettings();
+            }
+        });
+    }).on('error', (err) => {
+        console.error(`❌ Download error for ${fileName}: ${err.message}`);
         process.exit(1);
-    }
-
-    const fileStream = fs.createWriteStream(scriptDest);
-    res.pipe(fileStream);
-
-    fileStream.on('finish', () => {
-        fileStream.close();
-        console.log(`✅ Successfully downloaded script to: ${scriptDest}`);
-        updateSettings();
     });
-}).on('error', (err) => {
-    console.error(`❌ Download error: ${err.message}`);
-    process.exit(1);
-});
+}
+
+filesToDownload.forEach(downloadFile);
 
 // 3. Update settings.json
 function updateSettings() {
