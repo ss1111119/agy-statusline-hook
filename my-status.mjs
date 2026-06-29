@@ -10,11 +10,11 @@ async function main() {
       console.log('API: 尚未就緒 (等待 stdin)');
       return;
     }
-
+    
     // 2. Fetch Git status & Settings (in parallel for low latency)
     const [gitInfo, isFastMode] = await Promise.all([
       getGitInfo(),
-      readSettings()
+      readSettings(data?.workspace?.project_dir || data?.cwd)
     ]);
 
     // 3. Render

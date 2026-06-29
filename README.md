@@ -34,6 +34,11 @@ An advanced, zero-dependency, cross-platform statusline hook script tailored for
 * 🛡️ **Smart Background Telemetry**:
   * Dynamically displays the number of active **Subagents** and async **Tasks**.
   * Shows a red warning (`🔓 Sandbox: OFF`) if the Sandbox is disabled or network access is granted.
+* ⚙️ **Smart Settings Detection**:
+  * Automatically resolves configuration (like fast/lightspeed mode) across multiple directories by checking:
+    1. `~/.gemini/antigravity-cli/settings.json` (CLI global config)
+    2. `.gemini/settings.json` (Project-specific config)
+    3. `~/.gemini/settings.json` (User-level global config)
 * 🖥️ **Cross-Platform**: Full support for macOS, Linux, and Windows PowerShell.
 * 🌈 **TrueColor ANSI Gradient**:
   * $\ge$ 75%: **Sky Blue** (`#57CAFF`)
@@ -158,6 +163,17 @@ curl -fsSL https://raw.githubusercontent.com/ss1111119/agy-statusline-hook/main/
   $mock = '{"model":{"display_name":"Gemini 3.5 Flash"},"agent_state":"thinking","email":"test@example.com","context_window":{"context_window_size":100000,"total_input_tokens":12000,"total_output_tokens":3000,"remaining_percentage":85,"current_usage":{"input_tokens":2100,"output_tokens":318}},"subagents":[{},{}],"task_count":1,"sandbox":{"enabled":false,"allow_network":true},"quota":{"gemini-5h":{"remaining_fraction":0.9,"reset_in_seconds":3600}}}'
   $mock | node my-status.mjs
   ```
+
+---
+
+### ⚙️ 多層級設定檔自動偵測
+
+為了能精確偵測並顯示 Lightspeed 快顯模式 (`Fast`) 的狀態，此腳本會依序檢查以下設定檔：
+1. `~/.gemini/antigravity-cli/settings.json` (CLI 工具之預設全域設定)
+2. `.gemini/settings.json` (當前專案/工作目錄之專案特定設定)
+3. `~/.gemini/settings.json` (Gemini 使用者之全域設定)
+
+這能確保當您在個別專案或全域環境中調整 `runningLightSpeed` 時，狀態列皆能即時且準確地對應。
 
 ---
 
