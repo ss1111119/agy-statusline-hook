@@ -63,10 +63,12 @@ function updateSettings() {
     // Node handles forward slashes well on Windows too. Let's replace backslashes to avoid JSON parsing issues if manually edited later
     const commandPath = scriptDest.replace(/\\/g, '/');
 
+    const command = commandPath.includes(' ') ? `node "${commandPath}"` : `node ${commandPath}`;
+
     settings.statusLine = {
         enabled: true,
         type: 'command',
-        command: `node "${commandPath}"`
+        command: command
     };
 
     try {
