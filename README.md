@@ -43,6 +43,10 @@ An advanced, zero-dependency, cross-platform statusline hook script tailored for
 
 ---
 
+## Prerequisites
+
+- **Node.js**: Since this is a JavaScript hook, you must have [Node.js](https://nodejs.org/) installed on your system to run it.
+
 ## Quick Installation
 
 Run this single command in your terminal (macOS / Linux / Windows PowerShell). It will automatically download the script and configure your `settings.json` for you:
@@ -113,6 +117,10 @@ precmd() {
 <h2 id="chinese">繁體中文介紹與安裝</h2>
 
 一個為 [Google Antigravity CLI (`agy`)](https://github.com/google/antigravity) 量身打造的輕量、零依賴、跨平台狀態列（Statusline）延伸腳本。採用 AGY 官方最新的 **Stdin 注入架構 (Stdin Injection Architecture)**，擁有 **0 網路延遲**、**100% 精準捕捉當前模型** 的極致效能，並支援豐富的系統監控數據。
+
+### 系統需求 (Prerequisites)
+
+- **Node.js**: 由於這是一個 JavaScript 腳本，您的電腦必須先安裝 [Node.js](https://nodejs.org/) 才能夠執行它。
 
 ### 一鍵安裝指令
 
