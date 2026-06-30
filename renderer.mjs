@@ -12,8 +12,11 @@ function getColorCode(percentage) {
 function formatCountdown(seconds) {
   if (seconds <= 0) return '現在';
   const hours = Math.floor(seconds / 3600);
+  if (hours >= 24) {
+    return `${hours}h`;
+  }
   const mins = Math.floor((seconds % 3600) / 60);
-  return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+  return hours > 0 ? `${hours}h${mins}m` : `${mins}m`;
 }
 
 function renderProgressBar(percentage, width = 10) {
@@ -100,7 +103,7 @@ export function renderStatus(data, gitInfo, isFastMode) {
   // Terminal width adaptation
   const termWidth = data.terminal_width || process.stdout.columns || process.stderr.columns || 100;
   const hideCountdown = termWidth < 80;
-  const progressBarWidth = termWidth < 70 ? 0 : (termWidth < 95 ? 5 : 10);
+  const progressBarWidth = termWidth < 70 ? 0 : (termWidth < 95 ? 3 : 5);
 
   // 4. API Quotas formatting
   const quotas = data.quota || {};
@@ -124,7 +127,7 @@ export function renderStatus(data, gitInfo, isFastMode) {
   const quotaStrs = activeQuotas.map(q => {
     const p = q.fraction * 100;
     let str = `${q.label} ${renderProgressBar(p, progressBarWidth)}`;
-    if (q.reset > 0 && !hideCountdown) str += ` \x1b[90m(⏰ ${formatCountdown(q.reset)})\x1b[0m`;
+    if (q.reset > 0 && !hideCountdown) str += ` \x1b[90m(⏰${formatCountdown(q.reset)})\x1b[0m`;
     return str;
   });
 

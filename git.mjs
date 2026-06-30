@@ -67,9 +67,14 @@ export function parseGitStatus(stdout) {
   // Any output lines after the header indicate modified or untracked changes
   const isDirty = lines.length > 1;
 
+  // Sanitize branch name to prevent terminal escape sequence injections
+  const safeBranch = branch
+    .replace(/[\x00-\x1F\x7F-\x9F]/g, '')
+    .replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '');
+
   return {
     isGit: true,
-    branch,
+    branch: safeBranch,
     isDirty
   };
 }
