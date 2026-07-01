@@ -22,12 +22,12 @@ An advanced, zero-dependency, cross-platform statusline hook script tailored for
 ## Features
 
 * 🔌 **Zero Dependencies & Zero Latency**:
-  * Abandons the slow local API polling of older versions, fully embracing AGY's native `stdin` injection mechanism.
-  * Instant response times. No background PID hunting or localhost API requests required. 300% performance boost.
+  * Employs AGY's native `stdin` injection mechanism for instant, lag-free statusline rendering.
+  * Uses a detached, non-blocking background daemon (`quota-updater.mjs`) to asynchronously refresh API quotas from the local Language Server, ensuring 0-latency interface updates.
 * 🎯 **True Active Model**: Directly captures the actual AI model being used in the current window from AGY's backend and highlights it in the top left corner (e.g., `[Gemini 3.1 Pro (High)]`).
-* 📊 **Dual Quota Tracking**:
+* 📊 **Dual Quota Tracking & Auto-Refresh**:
   * No more misleading 100% bars! Perfectly separates the **5-hour short-term quota** and the **Weekly long-term quota**.
-  * Supports automatic detection and switching for 3rd-Party model quotas (Claude, GPT, etc.).
+  * Auto-refreshes quotas in the background and supports automatic detection and switching for 3rd-Party model quotas (Claude, GPT, etc.).
 * 🧠 **Context Window Telemetry**:
   * `CTX: 12.5k/100k (88% left)`: Monitor AI memory capacity at all times to prevent context loss in long conversations.
   * `Turn: +2.1k/-318`: Accurately calculates token consumption for a single back-and-forth interaction.
@@ -121,7 +121,7 @@ precmd() {
 
 <h2 id="chinese">繁體中文介紹與安裝</h2>
 
-一個為 [Google Antigravity CLI (`agy`)](https://github.com/google/antigravity) 量身打造的輕量、零依賴、跨平台狀態列（Statusline）延伸腳本。採用 AGY 官方最新的 **Stdin 注入架構 (Stdin Injection Architecture)**，擁有 **0 網路延遲**、**100% 精準捕捉當前模型** 的極致效能，並支援豐富的系統監控數據。
+一個為 [Google Antigravity CLI (`agy`)](https://github.com/google/antigravity) 量身打造的輕量、零依賴、跨平台狀態列（Statusline）延伸腳本。採用 AGY 官方最新的 **Stdin 注入架構 (Stdin Injection Architecture)**，並結合背景異步配額更新機制（由 `quota-updater.mjs` 靜默執行，不影響主執行緒），擁有 **0 網路延遲**、**100% 精準捕捉當前模型與配額** 的極致效能，並支援豐富的系統監控數據。
 
 ### 系統需求 (Prerequisites)
 
