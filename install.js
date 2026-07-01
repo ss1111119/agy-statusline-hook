@@ -18,7 +18,7 @@ if (!fs.existsSync(hookDir)) {
 }
 
 // 2. Download all required scripts
-const filesToDownload = ['my-status.mjs', 'git.mjs', 'input.mjs', 'renderer.mjs'];
+const filesToDownload = ['my-status.mjs', 'git.mjs', 'input.mjs', 'renderer.mjs', 'quota-updater.mjs'];
 let downloadedCount = 0;
 
 function downloadFile(fileName) {

@@ -84,8 +84,7 @@ export function renderStatus(data, gitInfo, isFastMode) {
   const ctxTotal = data.context_window?.context_window_size || 0;
   const ctxUsed = (data.context_window?.total_input_tokens || 0) + 
                   (data.context_window?.total_output_tokens || 0);
-  const ctxRemainPct = data.context_window?.remaining_percentage != null ? 
-                       data.context_window.remaining_percentage : 100;
+  const ctxRemainPct = ctxTotal > 0 ? ((ctxTotal - ctxUsed) / ctxTotal) * 100 : 100;
   const turnIn = data.context_window?.current_usage?.input_tokens || 0;
   const turnOut = data.context_window?.current_usage?.output_tokens || 0;
 
@@ -110,24 +109,53 @@ export function renderStatus(data, gitInfo, isFastMode) {
   let activeQuotas = [];
   if (isGemini) {
     if (quotas['gemini-5h']?.remaining_fraction != null) {
-      activeQuotas.push({ label: 'Gemini (5h)', fraction: quotas['gemini-5h'].remaining_fraction, reset: quotas['gemini-5h'].reset_in_seconds });
+      activeQuotas.push({
+        label: 'Gemini (5h)',
+        fraction: quotas['gemini-5h'].remaining_fraction,
+        reset: quotas['gemini-5h'].reset_in_seconds,
+        reset_time: quotas['gemini-5h'].reset_time
+      });
     }
     if (quotas['gemini-weekly']?.remaining_fraction != null && termWidth >= 85) {
-      activeQuotas.push({ label: 'Gemini (Week)', fraction: quotas['gemini-weekly'].remaining_fraction, reset: quotas['gemini-weekly'].reset_in_seconds });
+      activeQuotas.push({
+        label: 'Gemini (Week)',
+        fraction: quotas['gemini-weekly'].remaining_fraction,
+        reset: quotas['gemini-weekly'].reset_in_seconds,
+        reset_time: quotas['gemini-weekly'].reset_time
+      });
     }
   } else {
     if (quotas['3p-5h']?.remaining_fraction != null) {
-      activeQuotas.push({ label: '3rd-Party (5h)', fraction: quotas['3p-5h'].remaining_fraction, reset: quotas['3p-5h'].reset_in_seconds });
+      activeQuotas.push({
+        label: '3rd-Party (5h)',
+        fraction: quotas['3p-5h'].remaining_fraction,
+        reset: quotas['3p-5h'].reset_in_seconds,
+        reset_time: quotas['3p-5h'].reset_time
+      });
     }
     if (quotas['3p-weekly']?.remaining_fraction != null && termWidth >= 85) {
-      activeQuotas.push({ label: '3rd-Party (Week)', fraction: quotas['3p-weekly'].remaining_fraction, reset: quotas['3p-weekly'].reset_in_seconds });
+      activeQuotas.push({
+        label: '3rd-Party (Week)',
+        fraction: quotas['3p-weekly'].remaining_fraction,
+        reset: quotas['3p-weekly'].reset_in_seconds,
+        reset_time: quotas['3p-weekly'].reset_time
+      });
     }
   }
 
   const quotaStrs = activeQuotas.map(q => {
     const p = q.fraction * 100;
     let str = `${q.label} ${renderProgressBar(p, progressBarWidth)}`;
-    if (q.reset > 0 && !hideCountdown) str += ` \x1b[90m(⏰${formatCountdown(q.reset)})\x1b[0m`;
+    
+    let resetSeconds = q.reset;
+    if (q.reset_time) {
+      try {
+        const diffMs = new Date(q.reset_time) - new Date();
+        resetSeconds = Math.max(0, Math.floor(diffMs / 1000));
+      } catch {}
+    }
+
+    if (resetSeconds > 0 && !hideCountdown) str += ` \x1b[90m(⏰${formatCountdown(resetSeconds)})\x1b[0m`;
     return str;
   });
 
